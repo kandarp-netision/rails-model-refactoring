@@ -28,6 +28,7 @@ class User < ActiveRecord::Base
   include CustomProxyImage
   include SerializeObjects
   include CustomTimestamp
+  include UserConcern
 
   # macros
   acts_as_liker
@@ -246,18 +247,9 @@ class User < ActiveRecord::Base
     serializable_hash(only: :[:id, :username, :gender]).merge(image: { medium: proxy_image_url, thumb: proxy_image_url('thumb') })
   end
 
-  def create_notification_setting
-    NotificationSetting.create(user_id: id)
-  end
-
   def following_or_follows?(recipient_id)
     follows_and_follower_ids = following_and_followers_ids
     follows_and_follower_ids.include?(recipient_id)
-  end
-
-  def update_points
-    update(total_points: USER_CREATION_POINTS)
-    PointsHistory.create_points_history(total_points, POINT_ACTIONS[:user_create], id, USER_CREATION_POINTS, self.class.name)
   end
 
   def following_and_followers_ids
@@ -279,12 +271,6 @@ class User < ActiveRecord::Base
     when ROLLING_STONE
       ROLLING_STONE_LABEL
     end
-  end
-
-  def strip_whitespace
-    self.username = username.strip if username
-    self.screen_name = screen_name.strip if screen_name
-    self.email = email.strip if email
   end
 
   def is_admin?
@@ -332,31 +318,6 @@ class User < ActiveRecord::Base
 
   def generate_slug
     username
-  end
-
-  def update_deactivate_user
-    if changed.include?('is_active')
-      if is_active?
-        show_user_data
-      else
-        hide_user_data
-        UserMailer.notify_user_deactivation(self).deliver_later unless new_record?
-      end
-    end
-  end
-
-  def hide_user_data
-    activate_in_active_user_data(false)
-    device_tokens.destroy_all
-    tokens.destroy_all
-  end
-
-  def show_user_data
-    activate_in_active_user_data
-  end
-
-  def activate_in_active_user_data(active = true)
-    Audio.unscoped.where(user_id: id).update_all(active: active)
   end
 
   def update_flagged_count(count = 1)
@@ -408,14 +369,6 @@ class User < ActiveRecord::Base
     Rails.cache.fetch("#{id}-genres", expires_in: 30.days) do
       genres.pluck(:id)
     end
-  end
-
-  def reset_featured_artists
-    Rails.cache.delete('featured_artists') if changed.include?('featured')
-  end
-
-  def update_slug
-    self.slug = username if changed.include?('username')
   end
 
   def reset_session
