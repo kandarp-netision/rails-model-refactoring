@@ -121,10 +121,6 @@ class User < ActiveRecord::Base
     end
   end
 
-  def following?(other_user)
-    relationships.find_by(followed_id: other_user.id).present?
-  end
-
   def update_sign_details(suspended = false)
     if suspended
       update(sign_in_count: sign_in_count + 1, current_sign_in_at: Time.now, suspended: false, suspended_at: nil)
@@ -235,21 +231,12 @@ class User < ActiveRecord::Base
     end
   end
 
-  def admin?
-    app_roles.pluck(:name).include?('admin') || is_admin?
-  end
-
   def custom_label_method
     username
   end
 
   def serialize_user
     serializable_hash(only: :[:id, :username, :gender]).merge(image: { medium: proxy_image_url, thumb: proxy_image_url('thumb') })
-  end
-
-  def following_or_follows?(recipient_id)
-    follows_and_follower_ids = following_and_followers_ids
-    follows_and_follower_ids.include?(recipient_id)
   end
 
   def following_and_followers_ids
@@ -262,10 +249,6 @@ class User < ActiveRecord::Base
 
   def find_level
     self.class.find_level points
-  end
-
-  def is_admin?
-    ADMIN_EMAILS.include?(email)
   end
 
   # to get beats and tracks count a user
