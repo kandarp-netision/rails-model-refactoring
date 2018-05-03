@@ -90,16 +90,16 @@ class User < ActiveRecord::Base
 
   # Scopes
   default_scope { where(is_active: true, suspended: false, deleted: false) }
-  scope :search_user, ->(user_name) { where('users.username like ? OR users.screen_name like ?', "#{user_name}%", "#{user_name}%").order('users.username').select_user_fields }
-  scope :all_users, ->(logged_user) { where.not(id: logged_user.id) }
-  scope :except_users, ->(user_ids) { where('users.id NOT IN (?)', user_ids) }
-  scope :for_user_unscoped, -> { unscope(where: [:is_active, :deleted, :suspended]) }
-  scope :popular, -> { order('total_points DESC') }
-  scope :featured_artists, -> { where(featured: true) }
-  scope :select_user_fields, -> { select('users.id, users.username, users.screen_name, users.image, users.updated_at, users.location, users.is_verified') }
-  scope :user_worker_fields, -> { select(:id, :email, :username, :screen_name) }
-  scope :search_priority, ->(relationships) { order(build_searching_order(relationships)) }
-  scope :tagging, ->(current_user, keyword) { all_users(current_user).where('username like ?', "#{keyword}%").order('username').select_user_fields.limit(TAGGING_RESULTS) }
+  scope :search_user, ->(user_name) { UserQuery.new.search_user(user_name) }
+  scope :all_users, ->(logged_user) { UserQuery.new.all_users(logged_user) }
+  scope :except_users, ->(user_ids) { UserQuery.new.except_users(user_ids) }
+  scope :for_user_unscoped, -> { UserQuery.new.for_user_unscoped }
+  scope :popular, -> { UserQuery.new.popular }
+  scope :featured_artists, -> { UserQuery.new.featured_artists }
+  scope :select_user_fields, -> { UserQuery.new.select_user_fields }
+  scope :user_worker_fields, -> { UserQuery.new.user_worker_fields }
+  scope :search_priority, ->(relationships) { UserQuery.new.search_priority(relationships) }
+  scope :tagging, ->(current_user, keyword) { UserQuery.new.tagging(current_user, keyword) }
   serialize :social_accounts, Hash
 
   def search_with_order(search, relationships)
