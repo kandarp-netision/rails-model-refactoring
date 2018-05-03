@@ -261,16 +261,7 @@ class User < ActiveRecord::Base
   end
 
   def find_level
-    case points
-    when BAND_CAMPER
-      BAND_CAMPER_LABEL
-    when JAM_MASTER
-      JAM_MASTER_LABEL
-    when HEAD_BANGER
-      HEAD_BANGER_LABEL
-    when ROLLING_STONE
-      ROLLING_STONE_LABEL
-    end
+    self.class.find_level points
   end
 
   def is_admin?
